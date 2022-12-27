@@ -13,9 +13,7 @@
 
 using namespace HTTP;
 
-Server::Server(void) {
-  
-}
+Server::Server(void) {}
 
 Server::Server(bool while_loop) {
   this->while_loop = while_loop;
@@ -31,7 +29,7 @@ void Server::listen(int port) const {
     exit(1);
   }
 
-  if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR , &opt, sizeof(opt))) {
+  if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
     perror("setsockopt");
     exit(1);
   }
@@ -40,7 +38,7 @@ void Server::listen(int port) const {
   address.sin_addr.s_addr = inet_addr("127.0.0.1");
   address.sin_port = htons(port);
 
-  if (bind(socket, (struct sockaddr *) &address, sizeof(address)) < 0) {
+  if (bind(socket, (struct sockaddr *)&address, sizeof(address)) < 0) {
     perror("bind failed");
     exit(0);
   }
@@ -55,22 +53,22 @@ void Server::listen(int port) const {
     struct sockaddr_in client_addr;
     int addrlen = sizeof(client_addr);
 
-    if ((new_socket = accept(socket, (struct sockaddr *) &client_addr, (socklen_t*) &addrlen)) < 0) {
+    if ((new_socket = accept(socket, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) < 0) {
       perror("accept");
       exit(0);
     }
 
     auto connection_handler = [this](int socket) {
       // while (true) {
-        char buffer[1024];
-        bzero(buffer, 1024);
+      char buffer[1024];
+      bzero(buffer, 1024);
 
-        if (read(socket, buffer, 1024) <= 0) {
-          close(socket);
-          // break;
-        }
+      if (read(socket, buffer, 1024) <= 0) {
+        close(socket);
+        // break;
+      }
 
-        handle(Request(buffer), Response(socket));
+      handle(Request(buffer), Response(socket));
       // }
     };
 

@@ -8,26 +8,30 @@ namespace HTTP {
 class Request {
 
 public:
-  Request(char buffer[1024]);
+  explicit Request(char buffer[1024]);
 
 public:
-  std::string get_method(void) const;
+  [[nodiscard]] std::string get_method() const;
 
-  std::string get_path(void) const;
+  [[nodiscard]] std::string get_path() const;
 
-  std::string get_version(void) const;
+  [[nodiscard]] std::string get_version() const;
 
-  std::vector<HTTP::Header> get_headers(void) const;
+  [[nodiscard]] std::vector<HTTP::Header> get_headers() const;
 
-  std::vector<std::string> get_content(void) const;
+  [[nodiscard]] std::vector<std::string> get_content() const;
 
-  HTTP::Header get_header(std::string key) const;
+  [[nodiscard]] HTTP::Header get_header(const std::string& key) const;
 
 private:
   std::string method;
+
   std::string path;
+
   std::string version;
+
   std::vector<HTTP::Header> headers = {};
+
   std::vector<std::string> content = {};
 };
 } // namespace HTTP

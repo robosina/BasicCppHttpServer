@@ -15,7 +15,7 @@ public:
 public:
   void listen(int port) const;
 
-  std::function<void(Request, Response)> handle = [](const HTTP::Request& req, HTTP::Response res) { res.send(); };
+  std::function<void(Request, Response)> handle = [](const HTTP::Request& req, const HTTP::Response& res) { res.send(); };
 
 private:
   bool while_loop = true;
