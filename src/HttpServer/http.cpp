@@ -19,41 +19,43 @@ Server::Server(bool while_loop) {
   this->while_loop = while_loop;
 }
 
-void Server::listen(int port) const {
-  int socket;
-  struct sockaddr_in address;
+void Server::configureSocket() {
   int opt = 1;
 
-  if ((socket = ::socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+  if ((_socket = ::socket(AF_INET, SOCK_STREAM, 0)) == 0) {
     perror("socket failed");
     exit(1);
   }
 
-  if (setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+  if (setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
     perror("setsockopt");
     exit(1);
   }
 
-  address.sin_family = AF_INET;
-  address.sin_addr.s_addr = inet_addr("127.0.0.1");
-  address.sin_port = htons(port);
+  _address.sin_family = AF_INET;
+  _address.sin_addr.s_addr = inet_addr("127.0.0.1");
+  _address.sin_port = htons(_port);
 
-  if (bind(socket, (struct sockaddr *)&address, sizeof(address)) < 0) {
+  if (bind(_socket, (struct sockaddr *)&_address, sizeof(_address)) < 0) {
     perror("bind failed");
     exit(0);
   }
 
-  if (::listen(socket, 3) < 0) {
+  if (::listen(_socket, 3) < 0) {
     perror("listen");
     exit(0);
   }
+}
 
+void Server::listen(int port) {
+  _port = port;
+  configureSocket();
   do {
     int new_socket = 0;
     struct sockaddr_in client_addr;
     int addrlen = sizeof(client_addr);
 
-    if ((new_socket = accept(socket, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) < 0) {
+    if ((new_socket = accept(_socket, (struct sockaddr *)&client_addr, (socklen_t *)&addrlen)) < 0) {
       perror("accept");
       exit(0);
     }
