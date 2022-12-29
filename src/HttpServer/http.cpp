@@ -18,10 +18,10 @@
 
 using namespace HTTP;
 
-Server::Server(void) {}
+Server::Server() {}
 
-Server::Server(bool while_loop) {
-  this->while_loop = while_loop;
+[[maybe_unused]] Server::Server(bool while_loop) {
+  HTTP::Server::while_loop = while_loop;
 }
 
 int Server::configureListener(const int port) const {
@@ -128,7 +128,7 @@ void *Server::worker(void *arg) {
     }
     for (int n = 0; n < nfds; ++n) {
       if (events[n].data.fd == listenfd) {
-        while (1) {
+        while (true) {
           int connfd = accept(listenfd, (struct sockaddr *) &clnt_addr, &clnt_addr_len);
           if (connfd < 0) {
             if (errno == EAGAIN | errno == EWOULDBLOCK) {

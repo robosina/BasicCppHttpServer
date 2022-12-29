@@ -45,7 +45,7 @@ namespace HTTP {
     public:
         Server();
 
-        explicit Server(bool while_loop);
+        [[maybe_unused]] explicit Server(bool while_loop);
 
     public:
         void listen(int port);
