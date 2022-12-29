@@ -1,4 +1,4 @@
-# Task Requirements(http/1.1 server) 
+# Requirements(http/1.1 server) 
 
 Implement a basic HTTP server that supports HTTP/1.1 in C++.
 Requirements
