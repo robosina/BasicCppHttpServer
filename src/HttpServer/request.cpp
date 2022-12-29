@@ -12,7 +12,7 @@ using namespace HTTP;
 Request::Request(char buffer[1024]) {
   std::vector<std::string> lines = StringHelper().buffer_to_vector(buffer);
   std::vector<std::string> head = StringHelper().split(lines[0]);
-  
+
   this->method = head[0];
   this->path = head[1];
   this->version = head[2];
@@ -30,39 +30,42 @@ Request::Request(char buffer[1024]) {
 
     std::string value;
     header.erase(header.begin());
-    for (const auto &s : header) value += s + " ";
+    for (const auto &s : header)
+      value += s + " ";
     value.pop_back();
 
-    this->headers.push_back(Header(key, value));
+    this->headers.emplace_back(key, value);
   }
 
-  for (int i = content_index; i < lines.size(); i++) content.push_back(lines[i]);
+  for (int i = content_index; i < lines.size(); i++)
+    content.push_back(lines[i]);
 }
 
-std::string Request::get_method(void) const {
+std::string Request::get_method() const {
   return this->method;
 }
 
-std::string Request::get_path(void) const {
+std::string Request::get_path() const {
   return this->path;
 }
 
-std::string Request::get_version(void) const {
+std::string Request::get_version() const {
   return this->version;
 }
 
-std::vector<HTTP::Header> Request::get_headers(void) const {
+std::vector<HTTP::Header> Request::get_headers() const {
   return this->headers;
 }
 
-std::vector<std::string> Request::get_content(void) const {
+std::vector<std::string> Request::get_content() const {
   return this->content;
 }
 
-HTTP::Header Request::get_header(std::string key) const {
+HTTP::Header Request::get_header(const std::string &key) const {
   for (Header header : this->get_headers()) {
-    if (header.get_key() == key) return header;
+    if (header.get_key() == key)
+      return header;
   }
 
-  return Header("", "");
+  return {"", ""};
 }

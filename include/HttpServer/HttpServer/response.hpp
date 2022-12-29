@@ -1,37 +1,45 @@
 #pragma once
 
 #include <vector>
-
 #include "header.hpp"
 
 namespace HTTP {
-  class Response {
+class Response {
 
-    public:
-      Response(int socket);
+public:
+  explicit Response(int socket);
 
-    public:
-      std::string get_status(void) const;
-      std::string get_content(void) const;
-      std::vector<HTTP::Header> get_headers(void) const;
-      int _get_socket(void) const;
+public:
+  [[nodiscard]] std::string get_status() const;
 
-    public:
-      void set_status(std::string status);
-      void set_content(std::string content);
-      void set_headers(std::vector<HTTP::Header> headers);
+  [[nodiscard]] std::string get_content() const;
 
-    public:
-      std::string to_string(void) const;
+  [[nodiscard]] std::vector<HTTP::Header> get_headers() const;
 
-    public:
-      void send(void) const;
-      void close(void) const;
+  [[nodiscard]] int _get_socket() const;
 
-    private:
-      int socket;
-      std::string status;
-      std::string content;
-      std::vector<HTTP::Header> headers = {};
-  };
-}
+public:
+  void set_status(std::string status);
+
+  void set_content(std::string content);
+
+  void set_headers(std::vector<HTTP::Header> headers);
+
+public:
+  [[nodiscard]] std::string to_string() const;
+
+public:
+  void send() const;
+
+  void close() const;
+
+private:
+  int socket;
+
+  std::string status;
+
+  std::string content;
+
+  std::vector<HTTP::Header> headers = {};
+};
+} // namespace HTTP

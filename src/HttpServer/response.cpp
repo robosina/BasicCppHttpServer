@@ -11,19 +11,19 @@ Response::Response(int socket) {
   this->set_status("200 OK");
 }
 
-std::string Response::get_status(void) const {
+std::string Response::get_status() const {
   return this->status;
 }
 
-std::string Response::get_content(void) const {
+std::string Response::get_content() const {
   return this->content;
 }
 
-std::vector<HTTP::Header> Response::get_headers(void) const {
+std::vector<HTTP::Header> Response::get_headers() const {
   return this->headers;
 }
 
-int Response::_get_socket(void) const {
+int Response::_get_socket() const {
   return this->socket;
 }
 
@@ -39,16 +39,16 @@ void Response::set_status(std::string status) {
   this->status = status;
 }
 
-std::string Response::to_string(void) const {
+std::string Response::to_string() const {
   std::string response = "HTTP/1.1 " + this->get_status() + "\n";
-  for (HTTP::Header header : this->get_headers()) response += header.to_string() + "\n";
+  for (const HTTP::Header& header : this->get_headers()) response += header.to_string() + "\n";
   return response + "\n" + this->content;
 }
 
-void Response::send(void) const {
+void Response::send() const {
   ::send(this->socket, this->to_string().c_str(), this->to_string().length(), 0);
 }
 
-void Response::close(void) const {
+void Response::close() const {
   ::close(this->socket);
 }
