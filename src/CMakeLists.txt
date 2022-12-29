@@ -26,6 +26,3 @@ target_link_libraries(HttpServer
   spdlog::spdlog
   )
 
-# copy html files to build directory
-file(COPY ${PROJECT_SOURCE_DIR}/pages/index.html DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-file(COPY ${PROJECT_SOURCE_DIR}/pages/favicon.ico DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

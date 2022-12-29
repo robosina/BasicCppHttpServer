@@ -16,6 +16,7 @@
 #include <sys/epoll.h>
 #include <climits>
 #include <sys/sendfile.h>
+#include <fstream>
 
 using namespace HTTP;
 
@@ -63,6 +64,7 @@ void Server::setNonBlocking(int fd) {
 void Server::listen(int port) {
   spdlog::info("Listening on port {}", port);
   spdlog::info("For access to the server, use http://localhost:{}/index.html", port);
+  _activeServerAddress = "http://localhost:" + std::to_string(port) + "/index.html";
 
   auto listenFd = configureListener(port);
   setNonBlocking(listenFd);
@@ -86,16 +88,24 @@ void Server::listen(int port) {
     throw std::runtime_error("Error while adding listenFd to epoll");
   }
 
+  std::ofstream file;
+  file.open(_activeServerFile);
+  file << _activeServerAddress;
+  file.close();
+
   for (unsigned long &i: threadPool) {
     if (pthread_create(&i, nullptr, worker, &commonArg) != 0) {
       throw std::runtime_error("Error while creating thread");
     }
   }
 
+
+
   worker(&commonArg);
 
   close(epollFd);
   close(listenFd);
+  spdlog::info("Server stopped");
 }
 
 void *Server::worker(void *arg) {
@@ -363,5 +373,9 @@ FILE *Server::handle_request(const request_t *req) {
   }
 
   return file;
+}
+
+const std::string &Server::getActiveServerAddress() const {
+  return _activeServerAddress;
 }
 

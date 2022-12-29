@@ -56,6 +56,17 @@ namespace HTTP {
                                                            const HTTP::Response &res) { res.send(); };
 
     private:
+
+        /// active server address when you want to use it
+        std::string _activeServerAddress{};
+
+    public:
+        const std::string &getActiveServerAddress() const;
+
+    private:
+
+        inline static std::string _activeServerFile{"active_server.txt"};
+
         inline static bool while_loop = true;
 
         struct sockaddr_in _address;
