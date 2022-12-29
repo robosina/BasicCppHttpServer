@@ -258,37 +258,22 @@ void Server::server(http_status_t *status) {
     }
   }
 
+  std::string statusStr{"200 OK"};
+  std::string content{"Hello"};
   if (status->req_status == Writing) {
-    FILE *file = status->file;
-    int filefd = fileno(file); //Return the system file descriptor for STREAM
-    size_t left = status->left;
-    ssize_t writen;
-
-    while (left > 0) {
-      writen = sendfile(connfd, filefd, NULL, left);
-      if (writen < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          // read end normally
-          break;
-        } else {
-          perror("sendfile");
-          status->req_status = Ended;
-          return;
-        }
-      } else if (writen == 0) {
-        // EOF encountered
-        status->req_status = Ended;
-        return;
-      } else {
-        left -= writen;
-      }
+    std::string response = "HTTP/1.1 " + statusStr + "\n";
+    std::string finalContent{};
+//    response += "\n" + content;
+    //append File * file to response
+    const int size = 255;
+    char str[size];
+    while (fgets(str, size, status->file) != nullptr) {
+      finalContent += str;
     }
-
-    if (left == 0) {
-      status->req_status = Ended;
-    } else {
-      status->left = left;
-    }
+    response += "Content-Length: " + std::to_string(finalContent.size()) + "\n\n";
+    response += finalContent;
+    ::send(connfd, response.c_str(), response.size(), 0);
+    status->req_status = Ended;
   }
 }
 
@@ -365,7 +350,6 @@ FILE *Server::handle_request(const request_t *req) {
     return nullptr;
   }
 
-  spdlog::info("abs_path: {}", abs_path);
   FILE *file = fopen(abs_path, "rb");
   free(abs_path);
   free(cur_dir);
