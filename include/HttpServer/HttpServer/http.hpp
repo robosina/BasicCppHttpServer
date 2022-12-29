@@ -2,8 +2,6 @@
 
 #include <functional>
 #include <netinet/in.h>
-#include "response.hpp"
-#include "request.hpp"
 #include "Config/config.hpp"
 
 namespace HTTP {
@@ -51,9 +49,6 @@ namespace HTTP {
 
     public:
         void listen(int port);
-
-        std::function<void(Request, Response)> handle = [](const HTTP::Request &req,
-                                                           const HTTP::Response &res) { res.send(); };
 
     private:
 

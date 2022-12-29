@@ -9,8 +9,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include "http.hpp"
-#include "response.hpp"
-#include "request.hpp"
 #include <pthread.h>
 #include <spdlog/spdlog.h>
 #include <sys/epoll.h>
