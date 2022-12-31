@@ -27,7 +27,7 @@ Http1_1::Http1_1() {}
 int Http1_1::configureListener(const int port) const {
   int opt = 1;
 
-  struct sockaddr_in serverAddress{};
+  struct sockaddr_in serverAddress {};
 
   serverAddress.sin_family = AF_INET;
   serverAddress.sin_addr.s_addr = INADDR_ANY;
@@ -39,7 +39,7 @@ int Http1_1::configureListener(const int port) const {
     throw std::runtime_error("Error while opening listenfd");
   }
 
-  if (bind(listener, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) != 0) {
+  if (bind(listener, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) != 0) {
     throw std::runtime_error("Error while binding listenfd to address");
   }
 
@@ -57,7 +57,6 @@ void Http1_1::setNonBlocking(int fd) {
   }
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-
 
 void Http1_1::listen(int port) {
   spdlog::info("Listening on port {}", port);
@@ -91,12 +90,11 @@ void Http1_1::listen(int port) {
   file << _activeServerAddress;
   file.close();
 
-  for (unsigned long &i: threadPool) {
+  for (unsigned long &i : threadPool) {
     if (pthread_create(&i, nullptr, worker, &commonArg) != 0) {
       throw std::runtime_error("Error while creating thread");
     }
   }
-
 
   worker(&commonArg);
 
@@ -107,16 +105,19 @@ void Http1_1::listen(int port) {
 
 void *Http1_1::worker(void *commonArgs) {
   auto events = std::vector<struct epoll_event>(config::MAX_EVENTS);
-  struct epoll_event epollEvent{};
-  int epollFd = ((struct ThreadArgs *) commonArgs)->epollFd;
-  int mainListenerFd = ((struct ThreadArgs *) commonArgs)->listenFd;
 
-  struct sockaddr_in clnt_addr{};
+  struct epoll_event epollEvent {};
+
+  int epollFd = ((struct ThreadArgs *)commonArgs)->epollFd;
+  int mainListenerFd = ((struct ThreadArgs *)commonArgs)->listenFd;
+
+  struct sockaddr_in clnt_addr {};
+
   socklen_t clnt_addr_len = sizeof(clnt_addr);
 
   int numberOfFileDescriptors;
   while (while_loop) {
-    numberOfFileDescriptors = epoll_wait(epollFd, (struct epoll_event *) events.data(), config::MAX_EVENTS, -1);
+    numberOfFileDescriptors = epoll_wait(epollFd, (struct epoll_event *)events.data(), config::MAX_EVENTS, -1);
 
     if (numberOfFileDescriptors <= 0) {
       perror("epoll_wait");
@@ -126,13 +127,14 @@ void *Http1_1::worker(void *commonArgs) {
   }
 }
 
-void Http1_1::processConnections(const std::vector<struct epoll_event> &events, epoll_event &epollEvent, int epollFd, int mainListenerFd,
-                           sockaddr_in &clnt_addr, socklen_t &clnt_addr_len, int numberOfFileDescriptors) {
+void Http1_1::processConnections(const std::vector<struct epoll_event> &events, epoll_event &epollEvent, int epollFd,
+                                 int mainListenerFd, sockaddr_in &clnt_addr, socklen_t &clnt_addr_len,
+                                 int numberOfFileDescriptors) {
   for (int n = 0; n < numberOfFileDescriptors; ++n) {
     auto &event = events[n];
     if (event.data.fd == mainListenerFd) {
       while (true) {
-        int connfd = accept(mainListenerFd, (struct sockaddr *) &clnt_addr, &clnt_addr_len);
+        int connfd = accept(mainListenerFd, (struct sockaddr *)&clnt_addr, &clnt_addr_len);
         if (connfd < 0) {
           if (errno == EAGAIN | errno == EWOULDBLOCK) {
             break;
@@ -146,8 +148,8 @@ void Http1_1::processConnections(const std::vector<struct epoll_event> &events, 
 
         epollEvent.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
 
-        auto *status = (http_status_t *) malloc(sizeof(http_status_t));
-        char *header = (char *) malloc(config::MAX_HEADER_SIZE);
+        auto *status = (http_status_t *)malloc(sizeof(http_status_t));
+        char *header = (char *)malloc(config::MAX_HEADER_SIZE);
         if (header == nullptr || status == nullptr) {
           perror("malloc");
           exit(1);
@@ -164,7 +166,7 @@ void Http1_1::processConnections(const std::vector<struct epoll_event> &events, 
         }
       }
     } else {
-      auto *status = (http_status_t *) event.data.ptr;
+      auto *status = (http_status_t *)event.data.ptr;
       server(status);
       if (status->req_status == Reading) {
         epollEvent.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
@@ -225,11 +227,8 @@ void Http1_1::server(http_status_t *status) {
         break;
       } else {
         readn++;
-        if (readn >= 4
-            && header[readn - 1] == '\n'
-            && header[readn - 2] == '\r'
-            && header[readn - 3] == '\n'
-            && header[readn - 4] == '\r') {
+        if (readn >= 4 && header[readn - 1] == '\n' && header[readn - 2] == '\r' && header[readn - 3] == '\n' &&
+            header[readn - 4] == '\r') {
           is_end = 1;
           break;
         }
@@ -270,8 +269,8 @@ void Http1_1::server(http_status_t *status) {
   if (status->req_status == Writing) {
     std::string response = "HTTP/1.1 " + statusStr + "\n";
     std::string finalContent{};
-//    response += "\n" + content;
-    //append File * file to response
+    //    response += "\n" + content;
+    // append File * file to response
     const int size = 255;
     char str[size];
     while (fgets(str, size, status->file) != nullptr) {
@@ -325,10 +324,17 @@ size_t Http1_1::rio_writen(int fd, const char *usrbuf, size_t n) {
 }
 
 int Http1_1::parse_request(const char *req_str, request_t *req_info) {
-  if (sscanf(req_str, "%s %s %[^\r\n]", req_info->method, req_info->uri, req_info->version) != 3) {
-    fprintf(stderr, "malformed http request\n");
+  auto scanfResult = sscanf(req_str, "%s %s %[^\r\n]", req_info->method, req_info->uri, req_info->version);
+  auto isMalformed = scanfResult != 3;
+  if (isMalformed) {
+    spdlog::info("{} \n {} \n {}", req_str, scanfResult, isMalformed);
+    spdlog::error("malformed http request, can't parse request");
+    spdlog::error("method:{}", req_info->method);
+    spdlog::error("uri:{}", req_info->uri);
+    spdlog::error("version:{}", req_info->version);
     return -1;
   }
+  return 0;
 }
 
 FILE *Http1_1::handle_request(const request_t *req) {
@@ -337,12 +343,12 @@ FILE *Http1_1::handle_request(const request_t *req) {
     return nullptr;
   }
 
-  char *abs_path = (char *) malloc(PATH_MAX);
+  char *abs_path = (char *)malloc(PATH_MAX);
   if (abs_path == nullptr) {
     perror("malloc");
   }
   const char *rel_path = req->uri[0] == '/' ? req->uri + 1 : req->uri;
-  char *cur_dir = (char *) malloc(PATH_MAX);
+  char *cur_dir = (char *)malloc(PATH_MAX);
   if (cur_dir == nullptr) {
     perror("malloc");
   }
@@ -373,4 +379,3 @@ FILE *Http1_1::handle_request(const request_t *req) {
 const std::string &Http1_1::getActiveServerAddress() const {
   return _activeServerAddress;
 }
-
