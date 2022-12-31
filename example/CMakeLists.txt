@@ -1,5 +1,8 @@
 add_executable(App src/example.cpp)
-target_link_libraries(App HttpServer)
+target_link_libraries(App
+  HttpServer
+  backward
+  )
 
 # copy shell script to build directory
 add_custom_command(TARGET App POST_BUILD

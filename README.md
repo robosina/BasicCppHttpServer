@@ -14,6 +14,15 @@ Requirements
 Via using epoll and thread pool, we can handle 10,000 concurrent connections and serve 100,000 requests per second
 on a modern personal computer, which is called c10k problem.
 
+## Compilation step
+
+```bash
+$ git submodule update --init
+$ mkdir build
+$ cd build
+$ cmake -G Ninja ..
+$ ninja
+```
 Upon compilation, in the output folder(`bin`), you will find a file named `index.html`, which will be served by the web server,
 and a file called `benchmark.sh`, which can be used to benchmark the active server,
 just run it, you do not need to provide any input.
@@ -95,3 +104,7 @@ Percentage of the requests served within a certain time (ms)
 
 
 ```
+
+# TODO
+- [ ] Add more test cases
+- [ ] After a few thousand requests, the server slows down.

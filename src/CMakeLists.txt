@@ -19,5 +19,6 @@ target_link_libraries(HttpServer
   PUBLIC
   pthread
   spdlog::spdlog
+  backward
   )
 
