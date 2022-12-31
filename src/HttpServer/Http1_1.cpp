@@ -8,7 +8,7 @@
 #include <strings.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include "http.hpp"
+#include "Http1_1.hpp"
 #include <pthread.h>
 #include <spdlog/spdlog.h>
 #include <sys/epoll.h>
@@ -16,15 +16,15 @@
 #include <sys/sendfile.h>
 #include <fstream>
 
-using namespace HTTP;
+using namespace http;
 
-Server::Server() {}
+Http1_1::Http1_1() {}
 
-[[maybe_unused]] Server::Server(bool while_loop) {
-  HTTP::Server::while_loop = while_loop;
+[[maybe_unused]] Http1_1::Http1_1(bool while_loop) {
+  ::Http1_1::while_loop = while_loop;
 }
 
-int Server::configureListener(const int port) const {
+int Http1_1::configureListener(const int port) const {
   int opt = 1;
 
   struct sockaddr_in serverAddress{};
@@ -50,7 +50,7 @@ int Server::configureListener(const int port) const {
   return listener;
 }
 
-void Server::setNonBlocking(int fd) {
+void Http1_1::setNonBlocking(int fd) {
   int flags = fcntl(fd, F_GETFL, 0);
   if (flags == -1) {
     flags = 0;
@@ -59,7 +59,7 @@ void Server::setNonBlocking(int fd) {
 }
 
 
-void Server::listen(int port) {
+void Http1_1::listen(int port) {
   spdlog::info("Listening on port {}", port);
   spdlog::info("For access to the server, use http://localhost:{}/index.html", port);
   _activeServerAddress = "http://localhost:" + std::to_string(port) + "/index.html";
@@ -98,7 +98,6 @@ void Server::listen(int port) {
   }
 
 
-
   worker(&commonArg);
 
   close(epollFd);
@@ -106,95 +105,98 @@ void Server::listen(int port) {
   spdlog::info("Server stopped");
 }
 
-void *Server::worker(void *arg) {
-  auto *events = (struct epoll_event *) malloc(sizeof(struct epoll_event) * config::MAX_EVENTS);
-  if (events == nullptr) {
-    throw std::runtime_error("Error while allocating memory for events");
-  }
-  struct epoll_event ev;
-  int epollfd = ((struct ThreadArgs *) arg)->epollFd;
-  int listenfd = ((struct ThreadArgs *) arg)->listenFd;
+void *Http1_1::worker(void *commonArgs) {
+  auto events = std::vector<struct epoll_event>(config::MAX_EVENTS);
+  struct epoll_event epollEvent{};
+  int epollFd = ((struct ThreadArgs *) commonArgs)->epollFd;
+  int mainListenerFd = ((struct ThreadArgs *) commonArgs)->listenFd;
 
-  struct sockaddr_in clnt_addr;
+  struct sockaddr_in clnt_addr{};
   socklen_t clnt_addr_len = sizeof(clnt_addr);
 
-  int nfds;
+  int numberOfFileDescriptors;
   while (while_loop) {
-    nfds = epoll_wait(epollfd, events, config::MAX_EVENTS, -1);
+    numberOfFileDescriptors = epoll_wait(epollFd, (struct epoll_event *) events.data(), config::MAX_EVENTS, -1);
 
-    if (nfds <= 0) {
+    if (numberOfFileDescriptors <= 0) {
       perror("epoll_wait");
       continue;
     }
-    for (int n = 0; n < nfds; ++n) {
-      if (events[n].data.fd == listenfd) {
-        while (true) {
-          int connfd = accept(listenfd, (struct sockaddr *) &clnt_addr, &clnt_addr_len);
-          if (connfd < 0) {
-            if (errno == EAGAIN | errno == EWOULDBLOCK) {
-              break;
-            } else {
-              perror("accept");
-              break;
-            }
-          }
+    processConnections(events, epollEvent, epollFd, mainListenerFd, clnt_addr, clnt_addr_len, numberOfFileDescriptors);
+  }
+}
 
-          setNonBlocking(connfd);
-
-          ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
-
-          http_status_t *status = (http_status_t *) malloc(sizeof(http_status_t));
-          char *header = (char *) malloc(config::MAX_HEADER_SIZE);
-          if (header == nullptr || status == nullptr) {
-            perror("malloc");
-            exit(1);
-          }
-          status->header = header;
-          status->connfd = connfd;
-          status->readn = 0;
-          status->req_status = Reading;
-          ev.data.ptr = status;
-
-          if (epoll_ctl(epollfd, EPOLL_CTL_ADD, connfd, &ev) < 0) {
-            perror("epoll_ctl");
-            continue;
+void Http1_1::processConnections(const std::vector<struct epoll_event> &events, epoll_event &epollEvent, int epollFd, int mainListenerFd,
+                           sockaddr_in &clnt_addr, socklen_t &clnt_addr_len, int numberOfFileDescriptors) {
+  for (int n = 0; n < numberOfFileDescriptors; ++n) {
+    auto &event = events[n];
+    if (event.data.fd == mainListenerFd) {
+      while (true) {
+        int connfd = accept(mainListenerFd, (struct sockaddr *) &clnt_addr, &clnt_addr_len);
+        if (connfd < 0) {
+          if (errno == EAGAIN | errno == EWOULDBLOCK) {
+            break;
+          } else {
+            perror("accept");
+            break;
           }
         }
-      } else {
-        http_status_t *status = (http_status_t *) events[n].data.ptr;
-        server(status);
-        if (status->req_status == Reading) {
-          ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
-          ev.data.ptr = status;
-          if (epoll_ctl(epollfd, EPOLL_CTL_MOD, status->connfd, &ev) < 0) {
-            perror("epoll_ctl");
-            continue;
-          }
-        } else if (status->req_status == Writing) {
-          ev.events = EPOLLOUT | EPOLLET | EPOLLONESHOT;
-          ev.data.ptr = status;
-          if (epoll_ctl(epollfd, EPOLL_CTL_MOD, status->connfd, &ev) < 0) {
-            perror("epoll_ctl");
-            continue;
-          }
-        } else if (status->req_status == Ended) {
-          if (status->file != nullptr) {
-            fclose(status->file);
-            status->file = nullptr;
-          }
-          if (status->header != nullptr) {
-            free(status->header);
-            status->header = nullptr;
-          }
-          close(status->connfd);
-          free(status);
+
+        setNonBlocking(connfd);
+
+        epollEvent.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+
+        auto *status = (http_status_t *) malloc(sizeof(http_status_t));
+        char *header = (char *) malloc(config::MAX_HEADER_SIZE);
+        if (header == nullptr || status == nullptr) {
+          perror("malloc");
+          exit(1);
         }
+        status->header = header;
+        status->connfd = connfd;
+        status->readn = 0;
+        status->req_status = Reading;
+        epollEvent.data.ptr = status;
+
+        if (epoll_ctl(epollFd, EPOLL_CTL_ADD, connfd, &epollEvent) < 0) {
+          perror("epoll_ctl");
+          continue;
+        }
+      }
+    } else {
+      auto *status = (http_status_t *) event.data.ptr;
+      server(status);
+      if (status->req_status == Reading) {
+        epollEvent.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+        epollEvent.data.ptr = status;
+        if (epoll_ctl(epollFd, EPOLL_CTL_MOD, status->connfd, &epollEvent) < 0) {
+          perror("epoll_ctl");
+          continue;
+        }
+      } else if (status->req_status == Writing) {
+        epollEvent.events = EPOLLOUT | EPOLLET | EPOLLONESHOT;
+        epollEvent.data.ptr = status;
+        if (epoll_ctl(epollFd, EPOLL_CTL_MOD, status->connfd, &epollEvent) < 0) {
+          perror("epoll_ctl");
+          continue;
+        }
+      } else if (status->req_status == Ended) {
+        if (status->file != nullptr) {
+          fclose(status->file);
+          status->file = nullptr;
+        }
+        if (status->header != nullptr) {
+          free(status->header);
+          status->header = nullptr;
+        }
+        close(status->connfd);
+        free(status);
       }
     }
   }
 }
 
-void Server::server(http_status_t *status) {
+void Http1_1::server(http_status_t *status) {
   int connfd = status->connfd;
   char *header = status->header;
   size_t readn = status->readn;
@@ -254,9 +256,6 @@ void Server::server(http_status_t *status) {
     fseek(file, 0L, SEEK_SET);
 
     if (file != nullptr) {
-//      char resp_header[64];
-//      sprintf(resp_header, "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\nHello", file_size);
-//      rio_writen(connfd, resp_header, strlen(resp_header));
       status->file = file;
       status->left = file_size;
       status->req_status = Writing;
@@ -285,7 +284,7 @@ void Server::server(http_status_t *status) {
   }
 }
 
-void Server::sendResponse(int connfd, status_t status, const char *content, size_t content_length) {
+void Http1_1::sendResponse(int connfd, status_t status, const char *content, size_t content_length) {
   char buf[128];
 
   if (status == NF) {
@@ -293,7 +292,7 @@ void Server::sendResponse(int connfd, status_t status, const char *content, size
   } else if (status == OK) {
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
   } else {
-    sprintf(buf, "HTTP/1.0 500 Internal Servere Error\r\n");
+    sprintf(buf, "HTTP/1.0 500 Internal Server Error\r\n");
   }
 
   sprintf(buf, "%sContent-Length: %lu\r\n\r\n", buf, content_length);
@@ -309,13 +308,12 @@ void Server::sendResponse(int connfd, status_t status, const char *content, size
   }
 }
 
-size_t Server::rio_writen(int fd, const char *usrbuf, size_t n) {
+size_t Http1_1::rio_writen(int fd, const char *usrbuf, size_t n) {
   size_t nleft = n;
   ssize_t nwritten;
   const char *bufp = usrbuf;
 
   while (nleft > 0) {
-    spdlog::warn("writing {} bufp: {}", nleft, bufp);
     if ((nwritten = write(fd, bufp, nleft)) <= 0) {
       return 0;
     }
@@ -323,18 +321,17 @@ size_t Server::rio_writen(int fd, const char *usrbuf, size_t n) {
     bufp += nwritten;
   }
 
-  spdlog::warn("finished writing");
   return n;
 }
 
-int Server::parse_request(const char *req_str, request_t *req_info) {
+int Http1_1::parse_request(const char *req_str, request_t *req_info) {
   if (sscanf(req_str, "%s %s %[^\r\n]", req_info->method, req_info->uri, req_info->version) != 3) {
     fprintf(stderr, "malformed http request\n");
     return -1;
   }
 }
 
-FILE *Server::handle_request(const request_t *req) {
+FILE *Http1_1::handle_request(const request_t *req) {
   if (strncmp(req->method, "GET", 3) != 0) {
     fprintf(stderr, "only support `GET` method\n");
     return nullptr;
@@ -373,7 +370,7 @@ FILE *Server::handle_request(const request_t *req) {
   return file;
 }
 
-const std::string &Server::getActiveServerAddress() const {
+const std::string &Http1_1::getActiveServerAddress() const {
   return _activeServerAddress;
 }
 

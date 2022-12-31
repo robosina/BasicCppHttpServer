@@ -14,18 +14,31 @@ Requirements
 Via using epoll and thread pool, we can handle 10,000 concurrent connections and serve 100,000 requests per second
 on a modern personal computer, which is called c10k problem.
 
-Upon compilation, you will find a file named `index.html`, which is served by the web server,
+Upon compilation, in the output folder(`bin`), you will find a file named `index.html`, which will be served by the web server,
 and a file called `benchmark.sh`, which can be used to benchmark the active server,
 just run it, you do not need to provide any input.
 
+Your bin folder should look like this:
 ```bash
-./benchmark.sh
+$ tree
+.
+├── App           # the executable file which loads the web server
+├── benchmark.sh  # a script to benchmark the server
+├── favicon.ico   # a favicon file
+└── index.html    # the file to be served by the web server
+0 directories, 5 files
+```
+
+For benchmarking, you can use `ab` or `wrk` or any other tool you like. but I have prepared a script for you to benchmark the server.
+```bash
+$ ./benchmark.sh
 ```
 
 # Result on my computer
 
 ```bash
 $ ab -n 100000 -c 10000 http://localhost:8080/index.html
+Server address: http://localhost:8080/index.html
 This is ApacheBench, Version 2.3 <$Revision: 1843412 $>
 Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
 Licensed to The Apache Software Foundation, http://www.apache.org/
@@ -46,38 +59,39 @@ Finished 300000 requests
 
 Server Software:        
 Server Hostname:        localhost
-Server Port:            8081
+Server Port:            8080
 
 Document Path:          /index.html
 Document Length:        162 bytes
 
 Concurrency Level:      10000
-Time taken for tests:   18.542 seconds
+Time taken for tests:   15.927 seconds
 Complete requests:      300000
 Failed requests:        0
 Total transferred:      59700000 bytes
 HTML transferred:       48600000 bytes
-Requests per second:    16179.17 [#/sec] (mean)
-Time per request:       618.079 [ms] (mean)
-Time per request:       0.062 [ms] (mean, across all concurrent requests)
-Transfer rate:          3144.19 [Kbytes/sec] received
+Requests per second:    18836.22 [#/sec] (mean)
+Time per request:       530.892 [ms] (mean)
+Time per request:       0.053 [ms] (mean, across all concurrent requests)
+Transfer rate:          3660.55 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0  288 134.4    275    3486
-Processing:   109  321  82.2    319     629
-Waiting:        0  103  44.8    100     615
-Total:        298  608 123.7    595    3693
+Connect:        0  259 202.1    238    3360
+Processing:    96  267  68.3    267     437
+Waiting:        0  130  73.0    114     383
+Total:        169  526 204.1    530    3636
 
 Percentage of the requests served within a certain time (ms)
-  50%    595
-  66%    618
-  75%    639
-  80%    649
-  90%    668
-  95%    702
-  98%    763
-  99%    794
- 100%   3693 (longest request)
+  50%    530
+  66%    534
+  75%    537
+  80%    540
+  90%    546
+  95%    550
+  98%    555
+  99%   1467
+ 100%   3636 (longest request)
+
 
 ```

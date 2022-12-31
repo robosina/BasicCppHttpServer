@@ -1,7 +1,9 @@
 add_library(HttpServer
   STATIC
-  HttpServer/http.cpp
-  ${PROJECT_SOURCE_DIR}/include/HttpServer/HttpServer/http.hpp
+  HttpServer/Http1_1.cpp
+  ${PROJECT_SOURCE_DIR}/include/HttpServer/HttpServer/Http1_1.hpp
+  ${PROJECT_SOURCE_DIR}/include/HttpServer/HttpServer/HttpInterface.hpp
+  ${PROJECT_SOURCE_DIR}/include/HttpServer/HttpServer/HttpCommon.hpp
   ${PROJECT_SOURCE_DIR}/include/Config/Config/config.hpp
   )
 
