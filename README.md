@@ -1,11 +1,7 @@
-# Requirements(http/1.1 server) 
+# http/1.1 server
 
-Implement a basic HTTP server that supports HTTP/1.1 in C++.
-Requirements
-1. Linux based
-2. epoll and threadPool
-3. **Handle at least 10,000 concurrent connections.**
-4. **Serve at least 100,000 requests per second**
+- **Handle at least 10,000 concurrent connections.**
+- **Serve at least 100,000 requests per second**
 
 # main concept
 Via using epoll and thread pool, we can handle 10,000 concurrent connections and serve 100,000 requests per second
